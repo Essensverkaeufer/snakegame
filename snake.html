@@ -55,8 +55,8 @@ let players = { me: null, opponent: null };
 let appleMe = null;
 let appleOpponent = null;
 
-const socket = new WebSocket("ws://localhost:3000");
-
+const socket = new WebSocket("wss://your-app-name.onrender.com");
+  
 socket.onopen = () => {
   socket.send(JSON.stringify({ type: "joinQueue" }));
 };
