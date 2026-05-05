@@ -1,163 +1,133 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Basic Snake HTML Game</title>
+  <title>Snake 1v1</title>
   <meta charset="UTF-8">
   <style>
-  html, body {
-    height: 100%;
-    margin: 0;
-  }
-
-  body {
-    background: black;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  canvas {
-    border: 1px solid white;
-  }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: black;
+      color: white;
+      font-family: Arial;
+    }
+    .container {
+      display: flex;
+      gap: 30px;
+      text-align: center;
+    }
+    canvas {
+      border: 2px solid white;
+      background: #111;
+    }
   </style>
 </head>
 <body>
-<canvas width="400" height="400" id="game"></canvas>
+
+<div class="container">
+  <div>
+    <h3>You</h3>
+    <canvas id="game1" width="400" height="400"></canvas>
+    <p id="score1">Score: 0</p>
+  </div>
+
+  <div>
+    <h3>Opponent</h3>
+    <canvas id="game2" width="400" height="400"></canvas>
+    <p id="score2">Score: 0</p>
+  </div>
+</div>
+
+<h1 id="centerText" style="position:absolute;">Waiting...</h1>
+
 <script>
-var canvas = document.getElementById('game');
-var context = canvas.getContext('2d');
+const grid = 16;
 
-)
-var grid = 16;
-var count = 0;
+const ctx1 = document.getElementById('game1').getContext('2d');
+const ctx2 = document.getElementById('game2').getContext('2d');
 
-var snake = {
-  x: 160,
-  y: 160,
+let players = { me: null, opponent: null };
 
-  dx: grid,
-  dy: 0,
+// 🔥 TWO apples (THIS FIXES YOUR ISSUE)
+let appleMe = null;
+let appleOpponent = null;
 
-  cells: [],
+const socket = new WebSocket("ws://localhost:3000");
 
-
-  maxCells: 4
-};
-var apple = {
-  x: 320,
-  y: 320
+socket.onopen = () => {
+  socket.send(JSON.stringify({ type: "joinQueue" }));
 };
 
-function getRandomInt(min, max) {
-  return Math.floor(Math.random() * (max - min)) + min;
+socket.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+
+  if (data.type === "countdown") {
+    document.getElementById("centerText").innerText = data.value;
+  }
+
+  if (data.type === "gameState") {
+    document.getElementById("centerText").innerText = "Time: " + data.timeLeft;
+
+    players.me = data.me;
+    players.opponent = data.opponent;
+
+    // 🔥 IMPORTANT: separate apples
+    appleMe = data.apple;
+    appleOpponent = data.opponent.apple;
+
+    document.getElementById("score1").innerText = "Score: " + players.me.score;
+    document.getElementById("score2").innerText = "Score: " + players.opponent.score;
+  }
+
+  if (data.type === "gameOver") {
+    if (data.winner === "tie") alert("Draw!");
+    else alert(data.winner === "me" ? "You win!" : "You lose!");
+  }
+};
+
+document.addEventListener('keydown', (e) => {
+  socket.send(JSON.stringify({
+    type: "input",
+    key: e.which
+  }));
+});
+
+function draw(ctx, snake, color) {
+  if (!snake) return;
+
+  ctx.fillStyle = color;
+  snake.cells.forEach(cell => {
+    ctx.fillRect(cell.x, cell.y, grid - 1, grid - 1);
+  });
 }
 
 function loop() {
   requestAnimationFrame(loop);
 
+  ctx1.clearRect(0,0,400,400);
+  ctx2.clearRect(0,0,400,400);
 
-  if (++count < 4) {
-    return;
+  draw(ctx1, players.me, "lime");
+  draw(ctx2, players.opponent, "cyan");
+
+  // 🔥 draw YOUR apple
+  if (appleMe) {
+    ctx1.fillStyle = "red";
+    ctx1.fillRect(appleMe.x, appleMe.y, grid-1, grid-1);
   }
 
-  count = 0;
-  context.clearRect(0,0,canvas.width,canvas.height);
-
-
-  snake.x += snake.dx;
-  snake.y += snake.dy;
-
-
-  if (snake.x < 0) {
-    snake.x = canvas.width - grid;
+  // 🔥 draw OPPONENT apple
+  if (appleOpponent) {
+    ctx2.fillStyle = "red";
+    ctx2.fillRect(appleOpponent.x, appleOpponent.y, grid-1, grid-1);
   }
-  else if (snake.x >= canvas.width) {
-    snake.x = 0;
-  }
-
-
-  if (snake.y < 0) {
-    snake.y = canvas.height - grid;
-  }
-  else if (snake.y >= canvas.height) {
-    snake.y = 0;
-  }
-
-
-  snake.cells.unshift({x: snake.x, y: snake.y});
-
-
-  if (snake.cells.length > snake.maxCells) {
-    snake.cells.pop();
-  }
-
-
-  context.fillStyle = 'red';
-  context.fillRect(apple.x, apple.y, grid-1, grid-1);
-
-
-  context.fillStyle = 'green';
-  snake.cells.forEach(function(cell, index) {
-
-
-    context.fillRect(cell.x, cell.y, grid-1, grid-1);
-
-
-    if (cell.x === apple.x && cell.y === apple.y) {
-      snake.maxCells++;
-
-
-      apple.x = getRandomInt(0, 25) * grid;
-      apple.y = getRandomInt(0, 25) * grid;
-    }
-
-
-    for (var i = index + 1; i < snake.cells.length; i++) {
-
-
-      if (cell.x === snake.cells[i].x && cell.y === snake.cells[i].y) {
-        snake.x = 160;
-        snake.y = 160;
-        snake.cells = [];
-        snake.maxCells = 4;
-        snake.dx = grid;
-        snake.dy = 0;
-
-        apple.x = getRandomInt(0, 25) * grid;
-        apple.y = getRandomInt(0, 25) * grid;
-      }
-    }
-  });
 }
-
-document.addEventListener('keydown', function(e) {
-
-
-
-
-
-
-  if (e.which === 37 && snake.dx === 0) {
-    snake.dx = -grid;
-    snake.dy = 0;
-  }
-
-  else if (e.which === 38 && snake.dy === 0) {
-    snake.dy = -grid;
-    snake.dx = 0;
-  }
-
-  else if (e.which === 39 && snake.dx === 0) {
-    snake.dx = grid;
-    snake.dy = 0;
-  }
-
-  else if (e.which === 40 && snake.dy === 0) {
-    snake.dy = grid;
-    snake.dx = 0;
-  }
-});
 
 requestAnimationFrame(loop);
 </script>
+
 </body>
 </html>
