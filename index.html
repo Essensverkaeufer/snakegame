@@ -3,6 +3,7 @@
 <head>
   <title>Snake 1v1</title>
   <meta charset="UTF-8">
+
   <style>
     body {
       margin: 0;
@@ -14,34 +15,57 @@
       color: white;
       font-family: Arial;
     }
+
     .container {
       display: flex;
       gap: 30px;
       text-align: center;
     }
+
     canvas {
       border: 2px solid white;
       background: #111;
+    }
+
+    .timer {
+      font-size: 22px;
+      margin-top: 10px;
     }
   </style>
 </head>
 <body>
 
 <div class="container">
+
   <div>
     <h3>You</h3>
+
     <canvas id="game1" width="400" height="400"></canvas>
+
     <p id="score1">Score: 0</p>
+
+    <div class="timer">
+      ⏱️ <span id="timer1">30</span>
+    </div>
   </div>
 
   <div>
     <h3>Opponent</h3>
+
     <canvas id="game2" width="400" height="400"></canvas>
+
     <p id="score2">Score: 0</p>
+
+    <div class="timer">
+      ⏱️ <span id="timer2">30</span>
+    </div>
   </div>
+
 </div>
 
-<h1 id="centerText" style="position:absolute;">Waiting...</h1>
+<h1 id="centerText" style="position:absolute;">
+  Waiting...
+</h1>
 
 <script>
 const grid = 16;
@@ -49,80 +73,113 @@ const grid = 16;
 const ctx1 = document.getElementById('game1').getContext('2d');
 const ctx2 = document.getElementById('game2').getContext('2d');
 
-let players = { me: null, opponent: null };
+let players = {
+  me: null,
+  opponent: null
+};
 
-// 🔥 TWO apples (THIS FIXES YOUR ISSUE)
 let appleMe = null;
 let appleOpponent = null;
 
 const socket = new WebSocket("wss://snakegame-aqrq.onrender.com");
-  
+
 socket.onopen = () => {
-  socket.send(JSON.stringify({ type: "joinQueue" }));
+  socket.send(JSON.stringify({
+    type: "joinQueue"
+  }));
 };
 
 socket.onmessage = (event) => {
   const data = JSON.parse(event.data);
 
+  // countdown
   if (data.type === "countdown") {
-    document.getElementById("centerText").innerText = data.value;
+    document.getElementById("centerText").innerText =
+      data.value;
   }
 
+  // game state
   if (data.type === "gameState") {
-    document.getElementById("centerText").innerText = "Time: " + data.timeLeft;
+
+    document.getElementById("centerText").innerText = "";
 
     players.me = data.me;
     players.opponent = data.opponent;
 
-    // 🔥 IMPORTANT: separate apples
     appleMe = data.apple;
-    appleOpponent = data.opponent.apple;
 
-    document.getElementById("score1").innerText = "Score: " + players.me.score;
-    document.getElementById("score2").innerText = "Score: " + players.opponent.score;
+    // opponent apple hidden intentionally
+    appleOpponent = null;
+
+    document.getElementById("score1").innerText =
+      "Score: " + players.me.score;
+
+    document.getElementById("score2").innerText =
+      "Score: " + players.opponent.score;
+
+    document.getElementById("timer1").innerText =
+      data.myTime;
+
+    document.getElementById("timer2").innerText =
+      data.opponentTime;
   }
 
+  // game over
   if (data.type === "gameOver") {
-    if (data.winner === "tie") alert("Draw!");
-    else alert(data.winner === "me" ? "You win!" : "You lose!");
+    alert(
+      data.winner === "me"
+        ? "You win!"
+        : "You lose!"
+    );
   }
 };
 
+// controls
 document.addEventListener('keydown', (e) => {
+
   socket.send(JSON.stringify({
     type: "input",
     key: e.which
   }));
+
 });
 
+// draw snake
 function draw(ctx, snake, color) {
   if (!snake) return;
 
   ctx.fillStyle = color;
+
   snake.cells.forEach(cell => {
-    ctx.fillRect(cell.x, cell.y, grid - 1, grid - 1);
+    ctx.fillRect(
+      cell.x,
+      cell.y,
+      grid - 1,
+      grid - 1
+    );
   });
 }
 
+// render loop
 function loop() {
   requestAnimationFrame(loop);
 
-  ctx1.clearRect(0,0,400,400);
-  ctx2.clearRect(0,0,400,400);
+  ctx1.clearRect(0, 0, 400, 400);
+  ctx2.clearRect(0, 0, 400, 400);
 
   draw(ctx1, players.me, "lime");
   draw(ctx2, players.opponent, "cyan");
 
-  // 🔥 draw YOUR apple
+  // your apple only
   if (appleMe) {
     ctx1.fillStyle = "red";
-    ctx1.fillRect(appleMe.x, appleMe.y, grid-1, grid-1);
-  }
 
-  // 🔥 draw OPPONENT apple
-  if (appleOpponent) {
-    ctx2.fillStyle = "red";
-    ctx2.fillRect(appleOpponent.x, appleOpponent.y, grid-1, grid-1);
+    ctx1.fillRect(
+      appleMe.x,
+      appleMe.y,
+      grid - 1,
+      grid - 1
+    );
   }
 }
 
