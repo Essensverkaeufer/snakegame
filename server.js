@@ -7,7 +7,7 @@ let queue = [];
 let games = [];
 
 const GRID = 16;
-const STARVE_TIME = 30000; // 30 seconds
+const STARVE_TIME = 30000;
 
 function randomApple() {
   return {
@@ -30,7 +30,7 @@ function createSnake(x, y) {
     progress: 0,
     currentApple: null,
 
-    // ⏱️ starvation timer
+    // ⏱️ personal timer
     appleDeadline: Date.now() + STARVE_TIME
   };
 }
@@ -38,7 +38,7 @@ function createSnake(x, y) {
 function startGame(p1, p2) {
   const apples = [];
 
-  // generate shared sequence
+  // shared apple sequence
   for (let i = 0; i < 1000; i++) {
     apples.push(randomApple());
   }
@@ -75,10 +75,15 @@ function sendGameOver(p1, p2) {
 }
 
 function updateGame(game) {
+
   // ⏳ countdown
   if (!game.started) {
-    const elapsed = (Date.now() - game.countdownStart) / 1000;
-    const remaining = Math.max(0, 3 - elapsed);
+
+    const elapsed =
+      (Date.now() - game.countdownStart) / 1000;
+
+    const remaining =
+      Math.max(0, 3 - elapsed);
 
     game.players.forEach(p => {
       p.ws.send(JSON.stringify({
@@ -95,16 +100,22 @@ function updateGame(game) {
   }
 
   game.players.forEach(player => {
+
     const snake = player.snake;
 
     // 🍎 ensure apple exists
     if (!snake.currentApple) {
       const next = game.apples[snake.progress];
-      snake.currentApple = { x: next.x, y: next.y };
+
+      snake.currentApple = {
+        x: next.x,
+        y: next.y
+      };
     }
 
-    // 🎮 input
+    // 🎮 movement input
     if (player.input) {
+
       const key = player.input;
 
       if (key === 37 && snake.dx === 0) {
@@ -130,17 +141,24 @@ function updateGame(game) {
       player.input = null;
     }
 
-    // movement
+    // move
     snake.x += snake.dx;
     snake.y += snake.dy;
 
-    // wrap
-    if (snake.x < 0) snake.x = 384;
-    if (snake.x > 384) snake.x = 0;
-    if (snake.y < 0) snake.y = 384;
-    if (snake.y > 384) snake.y = 0;
+    // 💀 WALL DEATH
+    if (
+      snake.x < 0 ||
+      snake.x >= 400 ||
+      snake.y < 0 ||
+      snake.y >= 400
+    ) {
+      snake.alive = false;
+    }
 
-    snake.cells.unshift({ x: snake.x, y: snake.y });
+    snake.cells.unshift({
+      x: snake.x,
+      y: snake.y
+    });
 
     if (snake.cells.length > snake.maxCells) {
       snake.cells.pop();
@@ -155,8 +173,9 @@ function updateGame(game) {
       snake.maxCells++;
       snake.score++;
 
-      // reset 30 second timer
-      snake.appleDeadline = Date.now() + STARVE_TIME;
+      // reset starvation timer
+      snake.appleDeadline =
+        Date.now() + STARVE_TIME;
 
       snake.progress++;
       snake.currentApple = null;
@@ -164,6 +183,7 @@ function updateGame(game) {
 
     // 💀 self collision
     for (let i = 1; i < snake.cells.length; i++) {
+
       if (
         snake.x === snake.cells[i].x &&
         snake.y === snake.cells[i].y
@@ -176,42 +196,57 @@ function updateGame(game) {
     if (Date.now() > snake.appleDeadline) {
       snake.alive = false;
     }
+
   });
 
   const [p1, p2] = game.players;
 
   // 💀 someone died
   if (!p1.snake.alive || !p2.snake.alive) {
+
     sendGameOver(p1, p2);
+
     return false;
   }
 
-  // ⏱️ personal timers
-  const p1TimeLeft = Math.ceil(
-    (p1.snake.appleDeadline - Date.now()) / 1000
+  // ⏱️ timers
+  const p1TimeLeft = Math.max(
+    0,
+    Math.ceil(
+      (p1.snake.appleDeadline - Date.now()) / 1000
+    )
   );
 
-  const p2TimeLeft = Math.ceil(
-    (p2.snake.appleDeadline - Date.now()) / 1000
+  const p2TimeLeft = Math.max(
+    0,
+    Math.ceil(
+      (p2.snake.appleDeadline - Date.now()) / 1000
+    )
   );
 
   // 📡 send state
   p1.ws.send(JSON.stringify({
     type: "gameState",
+
     me: p1.snake,
     opponent: p2.snake,
+
     apple: p1.snake.currentApple,
-    myTime: p1TimeLeft,
-    opponentTime: p2TimeLeft
+
+    myTimeLeft: p1TimeLeft,
+    opponentTimeLeft: p2TimeLeft
   }));
 
   p2.ws.send(JSON.stringify({
     type: "gameState",
+
     me: p2.snake,
     opponent: p1.snake,
+
     apple: p2.snake.currentApple,
-    myTime: p2TimeLeft,
-    opponentTime: p1TimeLeft
+
+    myTimeLeft: p2TimeLeft,
+    opponentTimeLeft: p1TimeLeft
   }));
 
   return true;
@@ -222,14 +257,18 @@ setInterval(() => {
 }, 100);
 
 wss.on('connection', (ws) => {
+
   ws.on('message', (msg) => {
+
     const data = JSON.parse(msg);
 
     // queue
     if (data.type === "joinQueue") {
+
       queue.push(ws);
 
       if (queue.length >= 2) {
+
         const p1 = queue.shift();
         const p2 = queue.shift();
 
@@ -239,40 +278,54 @@ wss.on('connection', (ws) => {
 
     // input
     if (data.type === "input") {
+
       const game = games.find(g =>
         g.players.some(p => p.ws === ws)
       );
 
       if (!game) return;
 
-      const player = game.players.find(p => p.ws === ws);
+      const player =
+        game.players.find(p => p.ws === ws);
 
       if (player) {
         player.input = data.key;
       }
     }
+
   });
 
   ws.on('close', () => {
+
     queue = queue.filter(p => p !== ws);
 
     games = games.filter(game => {
-      const hasPlayer = game.players.some(p => p.ws === ws);
+
+      const hasPlayer =
+        game.players.some(p => p.ws === ws);
 
       if (hasPlayer) {
+
         game.players.forEach(p => {
+
           if (p.ws !== ws) {
+
             p.ws.send(JSON.stringify({
               type: "gameOver",
               winner: "me"
             }));
+
           }
+
         });
+
       }
 
       return !hasPlayer;
     });
+
   });
+
 });
 
-console.log("Server running");
+console.log("Server running on port", PORT);        
