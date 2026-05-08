@@ -30,7 +30,7 @@ function createSnake(x, y) {
     progress: 0,
     currentApple: null,
 
-    // ⏱️ personal timer
+
     appleDeadline: Date.now() + STARVE_TIME
   };
 }
@@ -38,7 +38,7 @@ function createSnake(x, y) {
 function startGame(p1, p2) {
   const apples = [];
 
-  // shared apple sequence
+
   for (let i = 0; i < 1000; i++) {
     apples.push(randomApple());
   }
@@ -76,7 +76,7 @@ function sendGameOver(p1, p2) {
 
 function updateGame(game) {
 
-  // ⏳ countdown
+
   if (!game.started) {
 
     const elapsed =
@@ -103,7 +103,7 @@ function updateGame(game) {
 
     const snake = player.snake;
 
-    // 🍎 ensure apple exists
+
     if (!snake.currentApple) {
       const next = game.apples[snake.progress];
 
@@ -113,7 +113,7 @@ function updateGame(game) {
       };
     }
 
-    // 🎮 movement input
+
     if (player.input) {
 
       const key = player.input;
@@ -141,11 +141,11 @@ function updateGame(game) {
       player.input = null;
     }
 
-    // move
+
     snake.x += snake.dx;
     snake.y += snake.dy;
 
-    // 💀 WALL DEATH
+
     if (
       snake.x < 0 ||
       snake.x >= 400 ||
@@ -164,7 +164,7 @@ function updateGame(game) {
       snake.cells.pop();
     }
 
-    // 🍎 eat apple
+
     if (
       snake.currentApple &&
       snake.x === snake.currentApple.x &&
@@ -173,7 +173,7 @@ function updateGame(game) {
       snake.maxCells++;
       snake.score++;
 
-      // reset starvation timer
+
       snake.appleDeadline =
         Date.now() + STARVE_TIME;
 
@@ -181,7 +181,7 @@ function updateGame(game) {
       snake.currentApple = null;
     }
 
-    // 💀 self collision
+
     for (let i = 1; i < snake.cells.length; i++) {
 
       if (
@@ -192,7 +192,7 @@ function updateGame(game) {
       }
     }
 
-    // ⏱️ starvation death
+
     if (Date.now() > snake.appleDeadline) {
       snake.alive = false;
     }
@@ -201,7 +201,7 @@ function updateGame(game) {
 
   const [p1, p2] = game.players;
 
-  // 💀 someone died
+
   if (!p1.snake.alive || !p2.snake.alive) {
 
     sendGameOver(p1, p2);
@@ -209,7 +209,7 @@ function updateGame(game) {
     return false;
   }
 
-  // ⏱️ timers
+
   const p1TimeLeft = Math.max(
     0,
     Math.ceil(
@@ -224,7 +224,7 @@ function updateGame(game) {
     )
   );
 
-  // 📡 send state
+
   p1.ws.send(JSON.stringify({
     type: "gameState",
 
@@ -262,7 +262,7 @@ wss.on('connection', (ws) => {
 
     const data = JSON.parse(msg);
 
-    // queue
+
     if (data.type === "joinQueue") {
 
       queue.push(ws);
@@ -276,7 +276,7 @@ wss.on('connection', (ws) => {
       }
     }
 
-    // input
+
     if (data.type === "input") {
 
       const game = games.find(g =>
