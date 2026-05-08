@@ -53,7 +53,7 @@
     <p id="score1">Punkte: 0</p>
 
     <div class="timer">
-      ⏱️
+      
       <span id="timer1">30</span>
     </div>
   </div>
@@ -70,7 +70,7 @@
     <p id="score2">Punkte: 0</p>
 
     <div class="timer">
-      ⏱️
+      
       <span id="timer2">30</span>
     </div>
   </div>
@@ -103,10 +103,10 @@ let appleMe = null;
 
 const socket =
   new WebSocket(
-    "wss://snakegame-aqrq.onrender.com"
+
   );
 
-// connected
+
 socket.onopen = () => {
 
   socket.send(JSON.stringify({
@@ -115,12 +115,12 @@ socket.onopen = () => {
 
 };
 
-// server messages
+
 socket.onmessage = (event) => {
 
   const data = JSON.parse(event.data);
 
-  // countdown
+
   if (data.type === "countdown") {
 
     document.getElementById(
@@ -129,7 +129,7 @@ socket.onmessage = (event) => {
 
   }
 
-  // game update
+
   if (data.type === "gameState") {
 
     document.getElementById(
@@ -141,18 +141,18 @@ socket.onmessage = (event) => {
 
     appleMe = data.apple;
 
-    // scores
+
     document.getElementById(
       "score1"
     ).innerText =
-      "Score: " + players.me.score;
+      "Punkte: " + players.me.score;
 
     document.getElementById(
       "score2"
     ).innerText =
-      "Score: " + players.opponent.score;
+      "Punkte: " + players.opponent.score;
 
-    // ⏱️ FIXED TIMERS
+
     document.getElementById(
       "timer1"
     ).innerText = data.myTimeLeft;
@@ -162,7 +162,7 @@ socket.onmessage = (event) => {
     ).innerText = data.opponentTimeLeft;
   }
 
-  // game over
+
   if (data.type === "gameOver") {
 
     alert(
@@ -175,7 +175,7 @@ socket.onmessage = (event) => {
 
 };
 
-// controls
+
 document.addEventListener('keydown', (e) => {
 
   socket.send(JSON.stringify({
@@ -185,7 +185,7 @@ document.addEventListener('keydown', (e) => {
 
 });
 
-// draw snake
+
 function drawSnake(ctx, snake, color) {
 
   if (!snake) return;
@@ -205,7 +205,7 @@ function drawSnake(ctx, snake, color) {
 
 }
 
-// render loop
+
 function loop() {
 
   requestAnimationFrame(loop);
@@ -216,7 +216,7 @@ function loop() {
   drawSnake(ctx1, players.me, "lime");
   drawSnake(ctx2, players.opponent, "cyan");
 
-  // 🍎 your apple only
+
   if (appleMe) {
 
     ctx1.fillStyle = "red";
